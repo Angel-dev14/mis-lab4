@@ -33,11 +33,11 @@ class _ExamPageState extends State<ExamPage> {
     _loadExams();
   }
 
-  _showExamCreatedNotification() {
+  _showUpcomingExamNotification(Exam exam,int days) {
     flutterLocalNotificationsPlugin.show(
         1,
-        "Exam Created",
-        "Successfully created exam",
+        "You have an upcoming exam in ${days} days",
+        "${exam.title}",
         NotificationDetails(
             android: AndroidNotificationDetails(
               channel.id, channel.name, channelDescription: channel.description,
@@ -56,6 +56,15 @@ class _ExamPageState extends State<ExamPage> {
     setState(() {
       _exams = exams;
     });
+    var currentDate = DateTime.now();
+    var upcomingExam = (_exams.map((e) =>  {'exam': e, 'days': _getDateDifference(currentDate, e.dateTime)})
+        .where((examDays) => examDays['days'] as int > 0 && examDays['days'] as int < 4).toList()
+      ..sort((a,b) => (a['exam'] as int).compareTo(b['days'] as int))).first;
+    _showUpcomingExamNotification(upcomingExam['exam'] as Exam, upcomingExam['days'] as int);
+  }
+
+  int _getDateDifference(DateTime currentDate, DateTime otherDate) {
+    return otherDate.difference(currentDate).inDays;
   }
 
   _hasExamOnDay(DateTime day) {
@@ -77,7 +86,6 @@ class _ExamPageState extends State<ExamPage> {
     setState(() {
       _exams.add(exam);
     });
-    _showExamCreatedNotification();
   }
 
   _deleteExam(String id) async {
@@ -88,9 +96,7 @@ class _ExamPageState extends State<ExamPage> {
   }
 
   _logout() async {
-    print("before sign out");
     await Auth().signOut();
-    print("after sign out");
     Navigator.pushReplacement(
         context, MaterialPageRoute(builder: (context) => LoginRegisterPage()));
   }
@@ -136,7 +142,6 @@ class _ExamPageState extends State<ExamPage> {
                   _focusedDay = focusedDay;
                 },
                 eventLoader: (day) {
-                  // print(day);
                   if (_hasExamOnDay(day)) {
                     return [day];
                   }
